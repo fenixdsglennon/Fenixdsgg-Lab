@@ -144,3 +144,31 @@ export const generateIdeas = async (topic: string): Promise<{ text: string, chun
 
     return { text, chunks: chunks as GroundingChunk[] };
 };
+
+// --- Text-to-Speech Generation ---
+export const generateSpeech = async (text: string, voice: string): Promise<string> => {
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY_MISSING");
+    }
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: `Say with a standard voice: ${text}` }] }],
+        config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+                voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName: voice },
+                },
+            },
+        },
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (base64Audio) {
+        return base64Audio;
+    }
+
+    throw new Error("Nenhum áudio foi gerado.");
+};

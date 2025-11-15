@@ -5,6 +5,7 @@ export enum Tool {
   IMAGE_EDITOR,
   VIDEO_GENERATOR,
   IDEA_GENERATOR,
+  TTS_GENERATOR,
 }
 
 export interface Feature {

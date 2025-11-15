@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import BackButton from '../components/BackButton';
 import Spinner from '../components/Spinner';
@@ -7,10 +6,9 @@ import { editImage } from '../services/geminiService';
 
 interface ImageEditorViewProps {
     onBack: () => void;
-    onApiKeyError: () => void;
 }
 
-const ImageEditorView: React.FC<ImageEditorViewProps> = ({ onBack, onApiKeyError }) => {
+const ImageEditorView: React.FC<ImageEditorViewProps> = ({ onBack }) => {
     const [prompt, setPrompt] = useState('');
     const [images, setImages] = useState<File[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -31,8 +29,7 @@ const ImageEditorView: React.FC<ImageEditorViewProps> = ({ onBack, onApiKeyError
             setResultImage(imageUrl);
         } catch (e) {
             if (e instanceof Error && (e.message.includes("API_KEY_MISSING") || e.message.includes("An API Key must be set"))) {
-                setError("Chave de API não encontrada. Por favor, configure-a na tela inicial.");
-                onApiKeyError();
+                setError("Chave de API não encontrada ou inválida. Verifique se o aplicativo está sendo executado no ambiente correto do AI Studio.");
             } else {
                 setError(`Ocorreu um erro: ${e instanceof Error ? e.message : String(e)}`);
             }

@@ -26,6 +26,12 @@ const IdeaGeneratorIcon = () => (
     </svg>
 );
 
+const TTSGeneratorIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-brand-light" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.933 3.553A1 1 0 0113 4.447v15.106a1 1 0 01-1.555.832l-6.65-3.839H2a1 1 0 01-1-1v-5.106a1 1 0 011-1h2.778l6.65-3.84a1 1 0 011.505-.047zM15 9a3 3 0 110 6" />
+    </svg>
+);
+
 export const FEATURES: Feature[] = [
     {
         id: Tool.IMAGE_GENERATOR,
@@ -56,6 +62,14 @@ export const FEATURES: Feature[] = [
         title: 'Gerador de Ideias',
         description: 'Busque ideias criativas e atualizadas para seus prompts de imagem e vídeo.',
         icon: <IdeaGeneratorIcon />,
+        requiresImage: false,
+        requiresVideo: false,
+    },
+    {
+        id: Tool.TTS_GENERATOR,
+        title: 'Gerador de Áudio (TTS)',
+        description: 'Converta texto em fala com som natural usando uma variedade de vozes.',
+        icon: <TTSGeneratorIcon />,
         requiresImage: false,
         requiresVideo: false,
     },

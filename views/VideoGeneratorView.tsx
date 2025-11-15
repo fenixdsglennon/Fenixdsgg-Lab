@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import BackButton from '../components/BackButton';
 import Spinner from '../components/Spinner';
@@ -8,7 +7,6 @@ import { Operation, GenerateVideosResponse } from '../types';
 
 interface VideoGeneratorViewProps {
     onBack: () => void;
-    onApiKeyError: () => void; // Callback to signal App to re-check the key
 }
 
 const LOADING_MESSAGES = [
@@ -20,7 +18,30 @@ const LOADING_MESSAGES = [
     "Quase lá, adicionando um toque de brilho...",
 ];
 
-const VideoGeneratorView: React.FC<VideoGeneratorViewProps> = ({ onBack, onApiKeyError }) => {
+const ApiKeySetupScreen: React.FC<{ onKeySelected: () => void, error: string | null }> = ({ onKeySelected, error }) => {
+    const handleSelectKey = async () => {
+        if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+            await window.aistudio.openSelectKey();
+            onKeySelected();
+        }
+    };
+
+    return (
+        <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 300px)' }}>
+            <div className="bg-base-200 p-8 rounded-lg text-center max-w-lg shadow-xl">
+                <h2 className="text-2xl font-bold mb-4">Configuração para Gerador de Vídeo</h2>
+                <p className="mb-6 text-content-200">A geração de vídeo requer uma configuração de chave de API específica. Por favor, selecione sua chave de API para continuar.</p>
+                <p className="mb-6 text-sm text-content-200">Para mais informações sobre cobrança, visite <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="text-brand-light underline">a documentação oficial</a>.</p>
+                <button onClick={handleSelectKey} className="bg-brand-primary hover:bg-brand-dark text-white font-bold py-3 px-8 rounded-lg transition-colors duration-300 w-full">
+                    Configurar Chave de API
+                </button>
+                {error && <p className="text-red-500 mt-4">{error}</p>}
+            </div>
+        </div>
+    );
+};
+
+const VideoGeneratorView: React.FC<VideoGeneratorViewProps> = ({ onBack }) => {
     const [prompt, setPrompt] = useState('');
     const [image, setImage] = useState<File | null>(null);
     const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16">("16:9");
@@ -29,16 +50,52 @@ const VideoGeneratorView: React.FC<VideoGeneratorViewProps> = ({ onBack, onApiKe
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
 
+    const [isKeyReady, setIsKeyReady] = useState<boolean | null>(null);
+    const [keyError, setKeyError] = useState<string | null>(null);
+
     const pollingIntervalRef = useRef<number | null>(null);
 
-    // Stop polling when component unmounts
+    const checkApiKey = useCallback(async () => {
+        setKeyError(null);
+        try {
+            if (!window.aistudio || typeof window.aistudio.hasSelectedApiKey !== 'function') {
+                throw new Error("Ambiente do AI Studio não encontrado. Esta ferramenta só funciona dentro do AI Studio.");
+            }
+            const hasKey = await window.aistudio.hasSelectedApiKey();
+            setIsKeyReady(hasKey);
+            if (!hasKey) {
+                setKeyError("Por favor, selecione uma chave de API para usar o gerador de vídeo.");
+            }
+        } catch (e) {
+            setKeyError(`Erro ao verificar a chave: ${e instanceof Error ? e.message : String(e)}`);
+            setIsKeyReady(false);
+        }
+    }, []);
+    
     useEffect(() => {
+        const maxRetries = 10;
+        let retries = 0;
+        const intervalId = setInterval(() => {
+            if (window.aistudio) {
+                clearInterval(intervalId);
+                checkApiKey();
+            } else {
+                retries++;
+                if (retries >= maxRetries) {
+                    clearInterval(intervalId);
+                    setKeyError("Não foi possível carregar o ambiente do AI Studio. Por favor, atualize a página.");
+                    setIsKeyReady(false);
+                }
+            }
+        }, 500);
+
         return () => {
+            clearInterval(intervalId)
             if (pollingIntervalRef.current) {
                 clearInterval(pollingIntervalRef.current);
             }
         };
-    }, []);
+    }, [checkApiKey]);
 
     useEffect(() => {
         if (isLoading && !videoUrl) {
@@ -62,7 +119,6 @@ const VideoGeneratorView: React.FC<VideoGeneratorViewProps> = ({ onBack, onApiKe
                     setIsLoading(false);
                     const downloadLink = updatedOp.response?.generatedVideos?.[0]?.video?.uri;
                     if (downloadLink) {
-                        // The API key is required to fetch the video from the URI
                         const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
                         if (!response.ok) {
                             throw new Error(`Falha ao buscar o vídeo: ${response.statusText}`);
@@ -78,7 +134,7 @@ const VideoGeneratorView: React.FC<VideoGeneratorViewProps> = ({ onBack, onApiKe
                 setError(`Erro durante a verificação: ${e instanceof Error ? e.message : String(e)}`);
                 setIsLoading(false);
             }
-        }, 10000); // Poll every 10 seconds
+        }, 10000);
     }, []);
 
     const handleSubmit = async () => {
@@ -94,8 +150,8 @@ const VideoGeneratorView: React.FC<VideoGeneratorViewProps> = ({ onBack, onApiKe
 
         try {
             const initialOperation = await generateVideo(prompt, aspectRatio, image || undefined);
-            if(initialOperation.done && initialOperation.response === undefined){
-                 throw new Error("A operação foi concluída imediatamente sem um resultado. Verifique seu prompt e a imagem.");
+            if (initialOperation.done && initialOperation.response === undefined) {
+                throw new Error("A operação foi concluída imediatamente sem um resultado. Verifique seu prompt e a imagem.");
             }
             pollOperation(initialOperation);
         } catch (e) {
@@ -103,17 +159,35 @@ const VideoGeneratorView: React.FC<VideoGeneratorViewProps> = ({ onBack, onApiKe
             if (e instanceof Error) {
                 if (e.message.includes("API_KEY_MISSING") || e.message.includes("An API Key must be set")) {
                     errorMessage = "Chave de API não encontrada. Por favor, configure a chave de API novamente.";
-                    onApiKeyError();
+                    checkApiKey();
                 } else if (e.message.includes("Requested entity was not found.")) {
                     errorMessage = "Chave de API inválida ou não encontrada. Por favor, configure a chave de API novamente.";
-                    onApiKeyError();
+                    checkApiKey();
                 }
             }
             setError(errorMessage);
             setIsLoading(false);
         }
     };
-    
+
+    if (isKeyReady === null) {
+        return (
+            <div>
+                <BackButton onClick={onBack} />
+                <div className="flex justify-center items-center h-64"><Spinner message="Verificando configuração de vídeo..." /></div>
+            </div>
+        );
+    }
+
+    if (!isKeyReady) {
+        return (
+            <div>
+                <BackButton onClick={onBack} />
+                <ApiKeySetupScreen onKeySelected={checkApiKey} error={keyError} />
+            </div>
+        );
+    }
+
     return (
         <div>
             <BackButton onClick={onBack} />

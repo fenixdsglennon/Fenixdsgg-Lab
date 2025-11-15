@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import BackButton from '../components/BackButton';
 import Spinner from '../components/Spinner';
@@ -7,10 +6,9 @@ import { GroundingChunk } from '../types';
 
 interface IdeaGeneratorViewProps {
     onBack: () => void;
-    onApiKeyError: () => void;
 }
 
-const IdeaGeneratorView: React.FC<IdeaGeneratorViewProps> = ({ onBack, onApiKeyError }) => {
+const IdeaGeneratorView: React.FC<IdeaGeneratorViewProps> = ({ onBack }) => {
     const [topic, setTopic] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -30,8 +28,7 @@ const IdeaGeneratorView: React.FC<IdeaGeneratorViewProps> = ({ onBack, onApiKeyE
             setResult(response);
         } catch (e) {
             if (e instanceof Error && (e.message.includes("API_KEY_MISSING") || e.message.includes("An API Key must be set"))) {
-                setError("Chave de API não encontrada. Por favor, configure-a na tela inicial.");
-                onApiKeyError();
+                setError("Chave de API não encontrada ou inválida. Verifique se o aplicativo está sendo executado no ambiente correto do AI Studio.");
             } else {
                 setError(`Ocorreu um erro: ${e instanceof Error ? e.message : String(e)}`);
             }
