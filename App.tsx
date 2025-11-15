@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tool } from './types';
 import HomeScreen from './views/HomeScreen';
@@ -41,18 +40,13 @@ const App: React.FC = () => {
 
     const checkApiKey = useCallback(async () => {
         try {
-            if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-                const hasKey = await window.aistudio.hasSelectedApiKey();
-                setIsKeyReady(hasKey);
-                 if (!hasKey) {
-                    setKeyError("Por favor, selecione uma chave de API para continuar.");
-                } else {
-                    setKeyError(null);
-                }
+            // This function assumes window.aistudio is available.
+            const hasKey = await window.aistudio.hasSelectedApiKey();
+            setIsKeyReady(hasKey);
+             if (!hasKey) {
+                setKeyError("Por favor, selecione uma chave de API para continuar.");
             } else {
-                // If aistudio is not available, assume key is set via other means (e.g. local dev)
-                // and proceed. The service call will fail if it's not actually set.
-                setIsKeyReady(true);
+                setKeyError(null);
             }
         } catch (e) {
             setKeyError(`Erro ao verificar a chave: ${e instanceof Error ? e.message : String(e)}`);
@@ -61,7 +55,25 @@ const App: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        checkApiKey();
+        // Wait for the aistudio object to be available before checking the key.
+        // This prevents a race condition on page load.
+        const maxRetries = 10;
+        let retries = 0;
+        const intervalId = setInterval(() => {
+            if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+                clearInterval(intervalId);
+                checkApiKey();
+            } else {
+                retries++;
+                if (retries >= maxRetries) {
+                    clearInterval(intervalId);
+                    setKeyError("Não foi possível carregar o ambiente do AI Studio. Por favor, atualize a página.");
+                    setIsKeyReady(false); // Cannot proceed
+                }
+            }
+        }, 500); // Check every 500ms for 5 seconds
+
+        return () => clearInterval(intervalId);
     }, [checkApiKey]);
 
 
