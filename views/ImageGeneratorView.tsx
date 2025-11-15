@@ -6,15 +6,15 @@ import { generateImageFromText } from '../services/geminiService';
 
 interface ImageGeneratorViewProps {
     onBack: () => void;
+    onApiKeyError: () => void;
 }
 
-const ImageGeneratorView: React.FC<ImageGeneratorViewProps> = ({ onBack }) => {
+const ImageGeneratorView: React.FC<ImageGeneratorViewProps> = ({ onBack, onApiKeyError }) => {
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
-    // Fix: Removed all API key related logic and UI. Service now uses process.env.API_KEY.
     const handleSubmit = async () => {
         if (!prompt) {
             setError('Por favor, insira um prompt.');
@@ -28,7 +28,12 @@ const ImageGeneratorView: React.FC<ImageGeneratorViewProps> = ({ onBack }) => {
             const imageUrl = await generateImageFromText(prompt);
             setGeneratedImage(imageUrl);
         } catch (e) {
-            setError(`Ocorreu um erro: ${e instanceof Error ? e.message : String(e)}`);
+            if (e instanceof Error && (e.message.includes("API_KEY_MISSING") || e.message.includes("An API Key must be set"))) {
+                setError("Chave de API não encontrada. Por favor, configure-a na tela inicial.");
+                onApiKeyError();
+            } else {
+                setError(`Ocorreu um erro: ${e instanceof Error ? e.message : String(e)}`);
+            }
         } finally {
             setIsLoading(false);
         }

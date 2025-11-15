@@ -7,15 +7,15 @@ import { GroundingChunk } from '../types';
 
 interface IdeaGeneratorViewProps {
     onBack: () => void;
+    onApiKeyError: () => void;
 }
 
-const IdeaGeneratorView: React.FC<IdeaGeneratorViewProps> = ({ onBack }) => {
+const IdeaGeneratorView: React.FC<IdeaGeneratorViewProps> = ({ onBack, onApiKeyError }) => {
     const [topic, setTopic] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [result, setResult] = useState<{ text: string; chunks: GroundingChunk[] } | null>(null);
 
-    // Fix: Removed all API key related logic and UI. Service now uses process.env.API_KEY.
     const handleSubmit = async () => {
         if (!topic) {
             setError('Por favor, insira um tópico.');
@@ -29,7 +29,12 @@ const IdeaGeneratorView: React.FC<IdeaGeneratorViewProps> = ({ onBack }) => {
             const response = await generateIdeas(topic);
             setResult(response);
         } catch (e) {
-            setError(`Ocorreu um erro: ${e instanceof Error ? e.message : String(e)}`);
+            if (e instanceof Error && (e.message.includes("API_KEY_MISSING") || e.message.includes("An API Key must be set"))) {
+                setError("Chave de API não encontrada. Por favor, configure-a na tela inicial.");
+                onApiKeyError();
+            } else {
+                setError(`Ocorreu um erro: ${e instanceof Error ? e.message : String(e)}`);
+            }
         } finally {
             setIsLoading(false);
         }

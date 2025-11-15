@@ -23,6 +23,9 @@ const fileToGenerativePart = async (file: File) => {
 // --- Image Generation ---
 // Fix: Removed apiKey parameter and used process.env.API_KEY directly.
 export const generateImageFromText = async (prompt: string): Promise<string> => {
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY_MISSING");
+    }
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const response = await ai.models.generateImages({
@@ -46,6 +49,9 @@ export const generateImageFromText = async (prompt: string): Promise<string> => 
 // --- Image Editing ---
 // Fix: Removed apiKey parameter and used process.env.API_KEY directly.
 export const editImage = async (prompt: string, images: File[]): Promise<string> => {
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY_MISSING");
+    }
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const imageParts = await Promise.all(images.map(fileToGenerativePart));
@@ -76,6 +82,9 @@ export const generateVideo = async (
     aspectRatio: "16:9" | "9:16",
     image?: File
 ): Promise<Operation<GenerateVideosResponse>> => {
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY_MISSING");
+    }
     // For Veo models, we must re-initialize the client to ensure the latest selected API key is used.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -103,6 +112,9 @@ export const generateVideo = async (
 };
 
 export const pollVideoOperation = async (operation: Operation<GenerateVideosResponse>): Promise<Operation<GenerateVideosResponse>> => {
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY_MISSING");
+    }
     // Re-initialize the client for polling as well.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     return ai.operations.getVideosOperation({ operation: operation });
@@ -112,6 +124,9 @@ export const pollVideoOperation = async (operation: Operation<GenerateVideosResp
 // --- Idea Generation with Search Grounding ---
 // Fix: Removed apiKey parameter and used process.env.API_KEY directly.
 export const generateIdeas = async (topic: string): Promise<{ text: string, chunks: GroundingChunk[] }> => {
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY_MISSING");
+    }
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const prompt = `Gere 5 ideias criativas e detalhadas para prompts de imagem ou vídeo sobre o tópico "${topic}". Use informações da web para garantir que as ideias sejam atuais e interessantes. Para cada ideia, forneça uma breve justificativa de por que seria visualmente atraente.`;

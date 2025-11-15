@@ -7,16 +7,16 @@ import { editImage } from '../services/geminiService';
 
 interface ImageEditorViewProps {
     onBack: () => void;
+    onApiKeyError: () => void;
 }
 
-const ImageEditorView: React.FC<ImageEditorViewProps> = ({ onBack }) => {
+const ImageEditorView: React.FC<ImageEditorViewProps> = ({ onBack, onApiKeyError }) => {
     const [prompt, setPrompt] = useState('');
     const [images, setImages] = useState<File[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [resultImage, setResultImage] = useState<string | null>(null);
 
-    // Fix: Removed all API key related logic and UI. Service now uses process.env.API_KEY.
     const handleSubmit = async () => {
         if (!prompt || images.length === 0) {
             setError('Por favor, envie pelo menos uma imagem e insira um prompt.');
@@ -30,7 +30,12 @@ const ImageEditorView: React.FC<ImageEditorViewProps> = ({ onBack }) => {
             const imageUrl = await editImage(prompt, images);
             setResultImage(imageUrl);
         } catch (e) {
-            setError(`Ocorreu um erro: ${e instanceof Error ? e.message : String(e)}`);
+            if (e instanceof Error && (e.message.includes("API_KEY_MISSING") || e.message.includes("An API Key must be set"))) {
+                setError("Chave de API não encontrada. Por favor, configure-a na tela inicial.");
+                onApiKeyError();
+            } else {
+                setError(`Ocorreu um erro: ${e instanceof Error ? e.message : String(e)}`);
+            }
         } finally {
             setIsLoading(false);
         }

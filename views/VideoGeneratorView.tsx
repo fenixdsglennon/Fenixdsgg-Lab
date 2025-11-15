@@ -100,10 +100,14 @@ const VideoGeneratorView: React.FC<VideoGeneratorViewProps> = ({ onBack, onApiKe
             pollOperation(initialOperation);
         } catch (e) {
             let errorMessage = `Ocorreu um erro: ${e instanceof Error ? e.message : String(e)}`;
-            if (e instanceof Error && e.message.includes("Requested entity was not found.")) {
-                errorMessage = "Chave de API inválida ou não encontrada. Por favor, configure a chave de API novamente.";
-                // Signal to the parent App component that the key is bad
-                onApiKeyError();
+            if (e instanceof Error) {
+                if (e.message.includes("API_KEY_MISSING") || e.message.includes("An API Key must be set")) {
+                    errorMessage = "Chave de API não encontrada. Por favor, configure a chave de API novamente.";
+                    onApiKeyError();
+                } else if (e.message.includes("Requested entity was not found.")) {
+                    errorMessage = "Chave de API inválida ou não encontrada. Por favor, configure a chave de API novamente.";
+                    onApiKeyError();
+                }
             }
             setError(errorMessage);
             setIsLoading(false);

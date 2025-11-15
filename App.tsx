@@ -76,14 +76,14 @@ const App: React.FC = () => {
 
         switch (currentTool) {
             case Tool.IMAGE_GENERATOR:
-                return <ImageGeneratorView onBack={() => setCurrentTool(null)} />;
+                return <ImageGeneratorView onBack={() => setCurrentTool(null)} onApiKeyError={checkApiKey} />;
             case Tool.IMAGE_EDITOR:
-                return <ImageEditorView onBack={() => setCurrentTool(null)} />;
+                return <ImageEditorView onBack={() => setCurrentTool(null)} onApiKeyError={checkApiKey} />;
             case Tool.VIDEO_GENERATOR:
                 // Pass a callback to reset the key check if the video API fails due to an invalid key
                 return <VideoGeneratorView onBack={() => setCurrentTool(null)} onApiKeyError={checkApiKey} />;
             case Tool.IDEA_GENERATOR:
-                return <IdeaGeneratorView onBack={() => setCurrentTool(null)} />;
+                return <IdeaGeneratorView onBack={() => setCurrentTool(null)} onApiKeyError={checkApiKey} />;
             default:
                 return <HomeScreen onSelectTool={setCurrentTool} />;
         }
